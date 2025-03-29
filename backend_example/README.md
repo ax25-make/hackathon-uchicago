@@ -1,5 +1,7 @@
 ***Use this example as boilerplate to help build a proper Gemini Backend***
-***Prerequisites***
+
+
+**Prerequisites**
 - Create a virtual environment and
 ```bash
 pip install -r requirements.txt
@@ -7,7 +9,7 @@ pip install -r requirements.txt
 - Create a .env file with:
 `GEMINI_API_KEY={your gemini api key}`
 
-***Usage (examples are local)***
+**Usage (examples are local)**
 
 1. Restart Session (remove conversation history)
 ```bash
