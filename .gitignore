@@ -3,3 +3,9 @@
 *.env
 # ignore virtual environments
 *venv
+
+/node_modules/**/*
+**/.DS_Store
+**/node_modules
+
+assets/
