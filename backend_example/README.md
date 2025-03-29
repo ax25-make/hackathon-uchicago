@@ -1,3 +1,4 @@
+***Use this example as boilerplate to help build a proper Gemini Backend***
 ***Prerequisites***
 - Create a virtual environment and
 ```bash
