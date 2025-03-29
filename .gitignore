@@ -1,3 +1,5 @@
-.env # save api keys
+# don't push api keys to GH
+.env
+*.env
 # ignore virtual environments
 *venv
