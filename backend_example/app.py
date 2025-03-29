@@ -57,7 +57,8 @@ def send_message():
         # Add assistant response to conversation history
         conversation_state["conversation"].append({"role": "model", "parts": [{"text": gemini_response}]})
 
-        return jsonify({"response": gemini_response, "conversation": conversation_state["conversation"]})
+        # Return only the plain text response
+        return gemini_response
 
     except Exception as e:
         print(f"Error: {e}")
@@ -72,3 +73,6 @@ def get_history():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5005, debug=True)
+
+
+
