@@ -1,7 +1,6 @@
 import { cn } from '@/utils/cn';
 
 const textboxBackdrop = '/images/interface/textbox.png';
-const nameBackdrop = '/images/interface/namebox.png';
 
 type TextboxProps = {
 	children?: React.ReactNode;
@@ -17,7 +16,7 @@ const Textbox = (props: TextboxProps) => {
 		>
 			<div className='relative'>
 				<img src={textboxBackdrop} alt='Textbox' className='object-contain' />
-				<div className='absolute inset-x-5 inset-x-end-3 inset-y-2 flex'>{props.children}</div>
+				<div className='absolute inset-x-5 inset-x-end-3 inset-y-3 flex'>{props.children}</div>
 			</div>
 		</div>
 	);
