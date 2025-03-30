@@ -9,6 +9,6 @@ import { twMerge } from 'tailwind-merge';
  * @param {string[]} inputs - The class names to merge.
  * @returns {string} - The merged class names.
  */
-export function cn(...inputs: string[]): string {
-	return twMerge(clsx(inputs));
+export function cn(...inputs: (string | undefined | boolean)[]): string {
+	return twMerge(clsx(inputs.filter(Boolean)));
 }
