@@ -5,7 +5,7 @@ import { TabSelector } from '@/components/TabSelector/component';
 import { cn } from '@/utils/cn';
 
 import { useGameStore } from './stores';
-import { characters } from '@/constants';
+import { characterData, characters } from '@/constants';
 import CharacterTab from '@/components/CharacterTab/component';
 
 export const DEBUG = true;
@@ -14,6 +14,26 @@ const useGame = () => {
 	const initialized = useGameStore((state) => state.initialized);
 	const loading = useGameStore((state) => state.loading);
 	const isSceneMenu = useGameStore((state) => state.isSceneMenu);
+
+	const setInitialGame = useGameStore.getState().setInitialGame;
+	useEffect(() => {
+		if (DEBUG) {
+			setInitialGame(
+				{
+					setting: 'A dark and stormy night',
+					color: '#c0ffee',
+				},
+				{
+					backstory: 'A brave hero',
+					objective: 'Save the world',
+					facts: [],
+					keys: [],
+					inventory: [],
+				},
+				characterData
+			);
+		}
+	}, []);
 
 	return {
 		initialized,
