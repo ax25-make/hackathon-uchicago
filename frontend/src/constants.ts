@@ -27,7 +27,7 @@ export const charactersAssets = {
 		musicSrc: '/music/boyer.mp3',
 		musicOverlaySrc: '',
 		musicStartTime: 86,
-		startMessage: 'My name is Dean Boyer. Mustache. Bicycle. overwhelming AURA. Enough said.',
+		startMessage: 'My name is Dean Boyer. Mustache. Bicycle. Enough said.',
 	},
 	'Da Vinci': {
 		name: 'Da Vinci',
@@ -36,7 +36,7 @@ export const charactersAssets = {
 		musicSrc: '/music/davinci.mp3',
 		musicOverlaySrc: '',
 		musicStartTime: 3.9,
-		startMessage: 'My name is Dean Boyer. Mustache. Bicycle. Enough said.',
+		startMessage: 'My name is Da Vinci and I am Da Renaissance man',
 	},
 	'Fish Guy': {
 		name: 'Fish Guy',
