@@ -20,7 +20,8 @@ MODEL_NAME = "gemini-2.0-flash"
 
 # ---- Game State ----
 characters = []  # List of 5 characters
-global_facts = []  # List of facts discovered during the game
+innocent_facts = [] # Facts that are known to all innocent characters
+murderer_facts = [] # subset of innocent facts that the murderer knows to increase inconsistency probability
 murderer_index = None  # Randomly chosen murderer
 
 
@@ -68,13 +69,13 @@ def create_character(setting, name, other_names):
 
 def initialize_game():
     """Initialize game state, generate characters, and randomize murderer."""
-    global characters, global_facts, murderer_index
+    global murderer_index
 
     # Generate setting and background
     setting = generate_prompt_response("Generate a detailed setting for a murder mystery story in 8 sentences.")
-    global_facts.append(setting)
     print("✅ Successfully created setting")
     print(f"{setting}")
+
 
     # Generate character names first
     character_names = [
@@ -91,16 +92,19 @@ def initialize_game():
     for i in range(5):
         character = create_character(setting, character_names[i], character_names)
         characters.append(character)
+        # Prepare conversation context
+        character.conversation_history = []
+        character_intro = f"In the murder mystery {setting}, you are {character.name}. {character.personality} your alibi: {character.alibi}. you suspect: {', '.join(character.suspicions)}. "
+        character.conversation_history.append({"role": "user", "parts": [{"text": character_intro}]})
         print(f"✅ Successfully generated character {str(i)}")
-        print(f"{}")
 
     # Clear global facts and conversation history
-    global_facts = []
     for character in characters:
         character.conversation_history = []
         character.questions_remaining = 5
 
     print(f"🎭 Murderer is: {characters[murderer_index].name}")
+    return setting
 
 # ---- Flask App ----
 app = Flask(__name__)
@@ -112,10 +116,10 @@ app = Flask(__name__)
 def generate_game():
     """Generate a new murder mystery game."""
     try:
-        initialize_game()
+        setting = initialize_game()
         # Return the setting and a list of names in JSON
         character_names = [character.name for character in characters]
-        return jsonify({"setting": global_facts[0],
+        return jsonify({"setting": setting,
                         "character_names": character_names})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -140,15 +144,8 @@ def converse():
     if character.questions_remaining <= 0:
         return jsonify({"query_successful": False, "message": f"No questions remaining for {character.name}."})
 
-    # Prepare conversation context
-    if not character.conversation_history:
-        character_intro = f"You are {character.name}. {character.personality} Your alibi: {character.alibi}. You suspect: {', '.join(character.suspicions)}."
-        character.conversation_history.append({"role": "system", "parts": [{"text": character_intro}]})
-
     # Prepare conversation context with history
-    facts_for_character = global_facts if character_index != murderer_index else random.sample(global_facts, int(0.6 * len(global_facts)))
-
-    conversation_context = character.conversation_history + [{"role": "user", "parts": [{"text": user_query}]}, {"role": "system", "parts": [{"text": f"These are the current known facts: {facts_for_character}"}]}]
+    conversation_context = character.conversation_history + [{"role": "user", "parts": [{"text": f"new question: user_query"}]}]
 
     # Send query to Gemini
     try:
@@ -163,11 +160,6 @@ def converse():
         character.conversation_history.append({"role": "user", "parts": [{"text": user_query}]})
         character.conversation_history.append({"role": "model", "parts": [{"text": gemini_response}]})
         character.questions_remaining -= 1
-
-        # Add innocent responses to global facts
-        if character_index != murderer_index:
-            new_fact = generate_prompt_response(f"Generate a new fact about the murder from the conversation with {character.name}.")
-            global_facts.append(new_fact)
 
         return jsonify({"query_successful": True, "response": gemini_response, "questions_remaining": character.questions_remaining})
 
