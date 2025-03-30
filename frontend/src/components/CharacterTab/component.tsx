@@ -32,11 +32,10 @@ const CharacterTab = (props: CharacterTabProps) => {
 	const audioStartTime = assets.musicStartTime; // first time
 
 	const [input, setInput] = useState('');
-	const [chatHistory, setChatHistory] = useState<Message[]>([]);
+	const [chatHistory, setChatHistory] = useState<Message[]>([{ role: 'model', text: assets.startMessage }]);
 	const [noQuestionsLeft, setNoQuestionsLeft] = useState(false);
 	const lastMessage = chatHistory.length > 0 ? chatHistory[chatHistory.length - 1] : { role: '', text: '' };
 	const lastCharacterMessage = chatHistory.reverse().find((message) => message.role === 'model');
-	const defaultCharacterMessage = `Hello, I am ${characterName}. What brings you here?`;
 	const isInput = lastMessage.role !== 'model';
 
 	const className = cn(
@@ -50,7 +49,6 @@ const CharacterTab = (props: CharacterTabProps) => {
 		!isInput && 'scrollbar-hide'
 	);
 
-	const loading = useGameStore((state) => state.loading);
 	const setLoading = useGameStore.getState().setLoading;
 
 	async function sendMessage() {
@@ -135,19 +133,27 @@ const CharacterTab = (props: CharacterTabProps) => {
 								autoCorrect='off'
 								autoCapitalize='off'
 								spellCheck='false'
-								className='w-full h-full bg-transparent placeholder-amber-950 focus:outline-none'
+								className='w-full h-full bg-transparent placeholder-amber-950 focus:outline-none max-w-[80%]  overflow-auto'
 								placeholder='Type your message...'
 								value={input}
 								onChange={(e) => {
 									setInput(e.target.value);
 								}}
-								onKeyDown={(e) => sendMessage()}
+								onKeyDown={(e) => {
+									if (e.key === 'Enter' && !e.shiftKey) {
+										e.preventDefault();
+										sendMessage();
+									}
+									if (e.key === 'Escape') {
+										setInput('');
+									}
+								}}
 							/>
 						</>
 					)}
 					{!isInput && (
 						<>
-							<span>{lastCharacterMessage?.text || defaultCharacterMessage}</span>
+							<span className='max-w-[90%]  overflow-auto'>{lastCharacterMessage?.text}</span>
 							<GiRetroController className='aspect-square absolute bottom-0 right-0 p-2' />
 						</>
 					)}
