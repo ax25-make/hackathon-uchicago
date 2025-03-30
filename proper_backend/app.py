@@ -20,20 +20,18 @@ client = genai.Client(api_key=API_KEY)
 MODEL_NAME = "gemini-2.0-flash"
 
 # ---- Game State ----
-characters = ["" for _ in range(5)]  # List of 5 characters
-innocent_facts = [] # Facts that are known to all innocent characters
-murderer_facts = [] # subset of innocent facts that the murderer knows to increase inconsistency probability
-murderer_index = None  # Randomly chosen murderer
-
-
-names = ["Demon", "Medusa", "Dean Boyer", "Leonardo Da Vinci", "Fish Guy"]
-
 class Character:
     def __init__(self, alibi, personality):
         self.alibi = alibi
         self.personality = personality
         self.conversation_history = []
         self.questions_remaining = 5
+
+characters = ["" for _ in range(5)] # reset characters
+innocent_facts = [] # Facts that are known to all innocent characters
+murderer_facts = [] # subset of innocent facts that the murderer knows to increase inconsistency probability
+murderer_index = None  # Randomly chosen murderer
+names = ["Demon", "Medusa", "Dean Boyer", "Leonardo Da Vinci", "Fish Guy"]
 
 
 # ---- Helper Functions ----
@@ -60,7 +58,7 @@ def create_character(setting, name):
 
 def initialize_game():
     """Initialize game state, generate characters, and randomize murderer."""
-    global murderer_index
+    global characters, innocent_facts, murderer_facts, murderer_index
     # Randomly choose the murderer index (0–4)
     murderer_index = random.randint(0, 4)
 
@@ -69,11 +67,11 @@ def initialize_game():
     print(f"{setting}")
 
     # Create characters with dependencies in the correct order
-    characters = ["" for _ in range(5)] # reset characters
+    characters = [""for _ in range(5)] # reset characters
     for i in range(5):
         character = create_character(setting, names[i])
         character.name = names[i]
-        characters.append(character)
+        characters[i] = character
         print(f"✅ Successfully generated character {str(i)}")
         print(f"character name: {character.name}")
         print(f"character personality: {character.personality}")
@@ -97,11 +95,9 @@ def initialize_game():
     # Clear global facts and conversation history
     for i, character in enumerate(characters):
                 # Initialize conversation context
-        character.conversation_history = []
         facts = innocent_facts if i != murderer_index else murderer_facts
         character_intro = f"In the murder mystery {setting}, you are {character.name}. {character.personality} your alibi: {character.alibi}. you know the facts: {','.join(fact for fact in facts)}. Speak to me from now on as if you are playing the role of this character trying to solve the murder mystery (even if you are the murderer). Stick closely to the facts you know."
         character.conversation_history.append({"role": "user", "parts": [{"text": character_intro}]})
-        character.conversation_history = []
         character.questions_remaining = 5
 
     print(f"🎭 Murderer is: {characters[murderer_index].name}")
@@ -115,6 +111,7 @@ app = Flask(__name__)
 @app.route("/generate_game", methods=["POST"])
 def generate_game():
     """Generate a new murder mystery game."""
+    global characters, innocent_facts, murderer_facts, murderer_index
     try:
         initialize_game()
         # Return an empty response with 200 OK
@@ -124,6 +121,7 @@ def generate_game():
 
 @app.route("/converse", methods=["POST"])
 def converse():
+    global characters, innocent_facts, murderer_facts, murderer_index
     """Converse with one of the characters (0-4)."""
     data = request.json
     character_index = int(data.get("character_index"))
@@ -144,7 +142,7 @@ def converse():
         return jsonify({"query_successful": False, "message": f"No questions remaining for {character.name}."})
 
     # Prepare conversation context with history
-    conversation_context = character.conversation_history + [{"role": "user", "parts": [{"text": f"new question: user_query"}]}]
+    conversation_context = character.conversation_history + [{"role": "user", "parts": [{"text": f"new question: {user_query}"}]}]
 
     # Send query to Gemini
     try:
@@ -168,6 +166,7 @@ def converse():
 
 @app.route("/guess", methods=["POST"])
 def guess():
+    global characters, innocent_facts, murderer_facts, murderer_index
     """Make a guess about who the murderer is."""
     data = request.json
     guess_index = data.get("character_index")
@@ -184,6 +183,7 @@ def guess():
 @app.route("/get_history", methods=["POST"])
 def get_history():
     """Get the conversation history for a character."""
+    global characters, innocent_facts, murderer_facts, murderer_index
     data = request.json
     character_index = data.get("character_index")
 

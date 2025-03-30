@@ -23,6 +23,7 @@ Initializes the game by:
 - Generating a setting and backstory.
 - Creating 5 characters with unique personalities and alibis.
 - Randomly assigning one of the characters as the murderer.
+- Creating a list of facts that all the innocents know but the murderer only partially knows. Hopefully the murderer will reveal himself through his inconsistincies in teh conversation.
 
 ### ✅ **Response:**
 - `204 No Content` – Game initialized successfully.
