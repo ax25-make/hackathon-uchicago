@@ -19,11 +19,9 @@ client = genai.Client(api_key=API_KEY)
 MODEL_NAME = "gemini-2.0-flash"
 
 # ---- Game State ----
-characters = [] # List of 5 characters
+characters = []  # List of 5 characters
 global_facts = []  # List of facts discovered during the game
-# Innocents will always get the complete global facts when prompting responses
-# Murderer will get a subset of the complete global facts when prompting responses
-murderer_index = None
+murderer_index = None  # Randomly chosen murderer
 
 
 class Character:
@@ -46,18 +44,26 @@ def generate_prompt_response(prompt):
     return response.candidates[0].content.parts[0].text.strip()
 
 
-def create_character_prompt(setting, is_murderer=False):
-    """Generate character with attributes based on the setting."""
-    alibi_prompt = "Generate a ever ever so slightly inconsistent alibi." if is_murderer else "Generate a consistent alibi."
-    personality_prompt = "Describe this character's personality and quirks."
-    suspicions_prompt = "List 3 other characters this person suspects (cannot suspect themselves)."
+def create_character(setting, name, other_names):
+    """Generate a character with consistent attributes."""
 
-    alibi = generate_prompt_response(f"Based on a {setting} murder mystery, {alibi_prompt}")
-    personality = generate_prompt_response(f"Based on a {setting} murder mystery, {personality_prompt}")
-    suspicions = generate_prompt_response(f"Based on a {setting} murder mystery, {suspicions_prompt}")
+    # Generate personality first since it sets the tone
+    personality_prompt = f"Describe the personality and quirks of {name} in the context of a {setting} murder mystery."
+    personality = generate_prompt_response(personality_prompt)
 
-    suspicions_list = [s.strip() for s in suspicions.split(",") if s.strip()][:3]
-    return alibi, personality, suspicions_list
+    # Generate alibi using personality and name for better consistency
+    alibi_prompt = f"Generate a consistent alibi for {name}, whose personality is {personality}, based on the {setting} murder mystery."
+    alibi = generate_prompt_response(alibi_prompt)
+
+    # Generate suspicions based on names, setting, personalities, and alibis
+
+    # Randomly select 2 characters for suspicions (cannot suspect themselves)
+    possible_suspicions = [n for n in other_names if n != name]
+    suspicions = random.sample(possible_suspicions, min(2, len(possible_suspicions)))
+
+    # Return a fully formed Character object
+    return Character(name, alibi, personality, suspicions)
+
 
 
 def initialize_game():
@@ -65,19 +71,28 @@ def initialize_game():
     global characters, global_facts, murderer_index
 
     # Generate setting and background
-    setting = generate_prompt_response("Generate a detailed setting for a murder mystery story in 5 sentences.")
+    setting = generate_prompt_response("Generate a detailed setting for a murder mystery story in 8 sentences.")
+    global_facts.append(setting)
+    print("✅ Successfully created setting")
+    print(f"{setting}")
 
-    print("successfully created setting")
-    print(setting)
+    # Generate character names first
+    character_names = [
+        generate_prompt_response(f"Two word answer. Generate a first name and last name for a character in the murder mystery with setting: {setting}.")
+        for _ in range(5)
+    ]
+    print("✅ Successfully generated character names")
 
     # Randomly choose the murderer index (0–4)
     murderer_index = random.randint(0, 4)
 
+    # Create characters with dependencies in the correct order
     characters = []
-    # for i in range(5):
-    #     alibi, personality, suspicions = create_character_prompt(setting, is_murderer=(i == murderer_index))
-    #     character_name = generate_prompt_response(f"Generate a name for character {i+1} in the murder mystery.")
-    #     characters.append(Character(character_name, alibi, personality, suspicions))
+    for i in range(5):
+        character = create_character(setting, character_names[i], character_names)
+        characters.append(character)
+        print(f"✅ Successfully generated character {str(i)}")
+        print(f"{}")
 
     # Clear global facts and conversation history
     global_facts = []
@@ -85,6 +100,7 @@ def initialize_game():
         character.conversation_history = []
         character.questions_remaining = 5
 
+    print(f"🎭 Murderer is: {characters[murderer_index].name}")
 
 # ---- Flask App ----
 app = Flask(__name__)
@@ -97,7 +113,10 @@ def generate_game():
     """Generate a new murder mystery game."""
     try:
         initialize_game()
-        return jsonify({"message": "Murder mystery generated successfully!"})
+        # Return the setting and a list of names in JSON
+        character_names = [character.name for character in characters]
+        return jsonify({"setting": global_facts[0],
+                        "character_names": character_names})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -119,18 +138,17 @@ def converse():
 
     # Check if the character has questions remaining
     if character.questions_remaining <= 0:
-        return jsonify({"error": f"No questions remaining for {character.name}."}), 400
+        return jsonify({"query_successful": False, "message": f"No questions remaining for {character.name}."})
 
     # Prepare conversation context
-    character_intro = f"You are {character.name}. {character.personality} Your alibi: {character.alibi}."
+    if not character.conversation_history:
+        character_intro = f"You are {character.name}. {character.personality} Your alibi: {character.alibi}. You suspect: {', '.join(character.suspicions)}."
+        character.conversation_history.append({"role": "system", "parts": [{"text": character_intro}]})
+
+    # Prepare conversation context with history
     facts_for_character = global_facts if character_index != murderer_index else random.sample(global_facts, int(0.6 * len(global_facts)))
 
-    # Prepare conversation history
-    conversation_context = [{"role": "user", "parts": [{"text": character_intro}]}]
-    conversation_context += character.conversation_history
-
-    # Add query and partial facts if needed
-    conversation_context.append({"role": "user", "parts": [{"text": user_query}]})
+    conversation_context = character.conversation_history + [{"role": "user", "parts": [{"text": user_query}]}, {"role": "system", "parts": [{"text": f"These are the current known facts: {facts_for_character}"}]}]
 
     # Send query to Gemini
     try:
@@ -138,6 +156,7 @@ def converse():
             model=MODEL_NAME,
             contents=conversation_context,
         )
+
         gemini_response = response.candidates[0].content.parts[0].text.strip()
 
         # Update conversation history and reduce questions
@@ -145,12 +164,12 @@ def converse():
         character.conversation_history.append({"role": "model", "parts": [{"text": gemini_response}]})
         character.questions_remaining -= 1
 
-        # Randomly generate new facts and update the global fact list
-        if character_index != murderer_index:  # Only innocents add to the fact list
-            new_fact = generate_prompt_response("Generate a new fact about the murder based on the conversation.")
+        # Add innocent responses to global facts
+        if character_index != murderer_index:
+            new_fact = generate_prompt_response(f"Generate a new fact about the murder from the conversation with {character.name}.")
             global_facts.append(new_fact)
 
-        return jsonify({"response": gemini_response, "facts": facts_for_character})
+        return jsonify({"query_successful": True, "response": gemini_response, "questions_remaining": character.questions_remaining})
 
     except Exception as e:
         return jsonify({"error": f"Failed to get response from Gemini API: {str(e)}"}), 500
@@ -166,9 +185,9 @@ def guess():
         return jsonify({"error": "Invalid character index. Must be between 0 and 4."}), 400
 
     if guess_index == murderer_index:
-        return jsonify({"result": "Correct! You have found the murderer! 🎉"})
+        return jsonify({"result": True})
     else:
-        return jsonify({"result": f"Wrong guess. {characters[guess_index].name} is not the murderer."})
+        return jsonify({"result": False})
 
 
 @app.route("/get_history", methods=["POST"])
