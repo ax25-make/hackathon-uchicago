@@ -40,3 +40,55 @@
 		background-position: 0 100%, 10px 80%;
 	}
 }
+
+@keyframes grayscale-animation {
+	0%,
+	100% {
+		filter: grayscale(0);
+	}
+	50% {
+		filter: grayscale(1);
+	}
+}
+
+.grayscale-animation {
+	animation: grayscale-animation 4.5s ease-in-out infinite;
+}
+
+/* Scrollbar styles */
+/* Stylized Retro RPG Scrollbar */
+::-webkit-scrollbar {
+	width: 16px;
+	height: 16px;
+}
+
+::-webkit-scrollbar-track {
+	background: #1e1a12; /* darker background for contrast */
+	border: 2px solid #2b2315;
+	box-shadow: inset 0 0 4px #000;
+}
+
+::-webkit-scrollbar-thumb {
+	background: #403214;
+	border: 2px solid #705c2a; /* gives a gold trim vibe */
+	box-shadow: inset 0 0 4px #000;
+}
+
+::-webkit-scrollbar-thumb:hover {
+	background: #5a431a;
+}
+
+::-webkit-scrollbar-corner {
+	background: #1e1a12;
+}
+
+/* Optional for Firefox */
+* {
+	scrollbar-width: thin;
+	scrollbar-color: #403214 #1e1a12;
+}
+
+.scroll-container {
+	overflow: auto;
+	max-height: 300px; /* or whatever fits */
+}

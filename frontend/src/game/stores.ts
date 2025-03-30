@@ -14,6 +14,7 @@ function getTabIdxFromCharacter(character: Character, state: GameStore): number 
 interface GameStore {
 	initialized: boolean;
 	loading: boolean;
+	isSceneMenu: boolean;
 
 	currentTabIndex: number;
 	setCurrentTabIndex: (index: number) => void;
@@ -39,6 +40,7 @@ interface GameStore {
 export const useGameStore = create<GameStore>()((set) => ({
 	initialized: false,
 	loading: true,
+	isSceneMenu: true,
 	currentTabIndex: 0,
 	tabs: [],
 	setCurrentTabIndex: (index: number) => set({ currentTabIndex: index }),
@@ -67,12 +69,13 @@ export const useGameStore = create<GameStore>()((set) => ({
 				dialogue: {
 					character,
 					history: [],
-					color: character.color,
+					color: '',
 					music: character.music,
 				},
 			})),
 			initialized: true,
 			loading: false,
+			isSceneMenu: false,
 		}),
 
 	// UI related

@@ -1,19 +1,7 @@
 export interface Character {
 	name: string;
-	backstory: string;
-	motivation: string;
-	tone: string;
-	icon: string;
-	personality: string;
-	facts: string[];
-	characterObjectives: string[];
-	conversationConstraints: string[];
-	relationships: {
-		[key: string]: string;
-	};
-	successReward: string;
-	color: string;
 	music: string;
+	index: number;
 }
 
 export interface CharacterData {
