@@ -9,6 +9,7 @@ export const charactersAssets = {
 		musicSrc: '/music/demon.mp3',
 		musicOverlaySrc: null,
 		musicStartTime: 13.7,
+		startMessage: 'My name is Demon (same as my father). I wish I was but I am unfortunately not the murderer today.',
 	},
 	Medusa: {
 		name: 'Medusa',
@@ -17,6 +18,7 @@ export const charactersAssets = {
 		musicSrc: '/music/medusa.mp3',
 		musicOverlaySrc: '/music/snake_hissing.mp3',
 		musicStartTime: 50,
+		startMessage: 'My name is Medusa. Don\'t try to pet me.',
 	},
 	'Dean Boyer': {
 		name: 'Dean Boyer',
@@ -25,6 +27,7 @@ export const charactersAssets = {
 		musicSrc: '/music/boyer.mp3',
 		musicOverlaySrc: '',
 		musicStartTime: 86,
+		startMessage: 'My name is Dean Boyer. Mustache. Bicycle. overwhelming AURA. Enough said.',
 	},
 	'Da Vinci': {
 		name: 'Da Vinci',
@@ -33,6 +36,7 @@ export const charactersAssets = {
 		musicSrc: '/music/davinci.mp3',
 		musicOverlaySrc: '',
 		musicStartTime: 3.9,
+		startMessage: 'My name is Dean Boyer. Mustache. Bicycle. Enough said.',
 	},
 	'Fish Guy': {
 		name: 'Fish Guy',
@@ -41,6 +45,7 @@ export const charactersAssets = {
 		musicSrc: '/music/fish_music.mp3',
 		musicOverlaySrc: '/music/fish_plop.mp3',
 		musicStartTime: 0,
+		startMessage: '*plop* Fish *plop* Guuuuuuuuy like *plop* to fish',
 	},
 } as const;
 
