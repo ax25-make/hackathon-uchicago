@@ -88,6 +88,8 @@ MODEL_NAME = "gemini-2.0-flash"
 # ---- Game State ----
 class Character:
     def __init__(self, alibi):
+        self.name = ""
+        self.personality = ""
         self.alibi = alibi
         self.conversation_history = []
         self.questions_remaining = 5
