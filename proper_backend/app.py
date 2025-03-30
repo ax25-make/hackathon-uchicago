@@ -29,7 +29,6 @@ class Character:
 
 characters = ["" for _ in range(5)] # reset characters
 innocent_facts = [] # Facts that are known to all innocent characters
-murderer_facts = [] # subset of innocent facts that the murderer knows to increase inconsistency probability
 murderer_index = None  # Randomly chosen murderer
 names = ["Demon", "Medusa", "Dean Boyer", "Leonardo Da Vinci", "Fish Guy"]
 
@@ -58,7 +57,7 @@ def create_character(setting, name):
 
 def initialize_game():
     """Initialize game state, generate characters, and randomize murderer."""
-    global characters, innocent_facts, murderer_facts, murderer_index
+    global characters, innocent_facts, murderer_index
     # Randomly choose the murderer index (0–4)
     murderer_index = random.randint(0, 4)
 
@@ -77,26 +76,26 @@ def initialize_game():
         print(f"character personality: {character.personality}")
         print(f"character alibi: {character.alibi}")
 
-    facts_prompt = f"From this story: {setting} and these alibies {','.join(character.name + ":" + character.alibi for character in characters)} generate 20 facts that each of the innocent characters will know regarding each others' alibies. Return the facts as a numbered list separated by newlines with no prepending intro text."
+    facts_prompt = f"From this story: {setting} and these alibies {','.join(character.name + ":" + character.alibi for character in characters)} generate 10 facts that each of the innocent characters will know regarding each others' alibies. Return the facts as a numbered list separated by newlines with no prepending intro text."
 
-    # Get all 20 facts using Gemini
+    # Get all 10 facts using Gemini
     facts_response = generate_prompt_response(facts_prompt)
 
     # Split the response into a list of facts
     innocent_facts = [fact.strip() for fact in facts_response.split("\n") if fact.strip()]
-    if len(innocent_facts) < 20:
-        raise ValueError("Failed to generate 20 facts. Check API response for errors.")
-    murderer_facts = random.sample(innocent_facts, 4) # murderer will know a subset of these facts
+    # if len(innocent_facts) < 20:
+    #     raise ValueError("Failed to generate 20 facts. Check API response for errors.")
+    # murderer_facts = random.sample(innocent_facts, 4) # murderer will know a subset of these facts
 
     print(f"✅ Successfully generated facts list")
     print(f"Innocent known facts: {'\n'.join(fact for fact in innocent_facts)}")
-    print(f"Guilty known facts: {'\n'.join(fact for fact in murderer_facts)}")
+    # print(f"Guilty known facts: {'\n'.join(fact for fact in murderer_facts)}")
 
     # Clear global facts and conversation history
     for i, character in enumerate(characters):
                 # Initialize conversation context
-        facts = innocent_facts if i != murderer_index else murderer_facts
-        character_intro = f"In the murder mystery {setting}, you are {character.name}. {character.personality} your alibi: {character.alibi}. you know the facts: {','.join(fact for fact in facts)}. Speak to me from now on as if you are playing the role of this character trying to solve the murder mystery (even if you are the murderer). Stick closely to the facts you know."
+        # facts = innocent_facts if i != murderer_index else murderer_facts
+        character_intro = f"In the murder mystery {setting}, you are {character.name}. {character.personality} your alibi: {character.alibi}." + f"you know the facts: {','.join(fact for fact in innocent_facts)}. Speak to me from now on as if you are playing the role of this character trying to solve the murder mystery (even if you are the murderer). Stick closely to the facts you know." if i != murderer_index else ""
         character.conversation_history.append({"role": "user", "parts": [{"text": character_intro}]})
         character.questions_remaining = 5
 
@@ -111,7 +110,7 @@ app = Flask(__name__)
 @app.route("/generate_game", methods=["POST"])
 def generate_game():
     """Generate a new murder mystery game."""
-    global characters, innocent_facts, murderer_facts, murderer_index
+    global characters, innocent_facts, murderer_index
     try:
         initialize_game()
         # Return an empty response with 200 OK
@@ -121,7 +120,7 @@ def generate_game():
 
 @app.route("/converse", methods=["POST"])
 def converse():
-    global characters, innocent_facts, murderer_facts, murderer_index
+    global characters, innocent_facts, murderer_index
     """Converse with one of the characters (0-4)."""
     data = request.json
     character_index = int(data.get("character_index"))
@@ -142,7 +141,7 @@ def converse():
         return jsonify({"query_successful": False, "message": f"No questions remaining for {character.name}."})
 
     # Prepare conversation context with history
-    conversation_context = character.conversation_history + [{"role": "user", "parts": [{"text": f"new question: {user_query}"}]}]
+    conversation_context = character.conversation_history + [{"role": "user", "parts": [{"text": f"new question: {user_query + " Please answer in 2 sentences and text format only." + ("Refer to one of the facts you know" if character_index != murderer_index else "Make up a random fact") + f"ask one character in {','.join(name for name in names)} to vouch for you."}"}]}]
 
     # Send query to Gemini
     try:
@@ -166,7 +165,7 @@ def converse():
 
 @app.route("/guess", methods=["POST"])
 def guess():
-    global characters, innocent_facts, murderer_facts, murderer_index
+    global characters, innocent_facts, murderer_index
     """Make a guess about who the murderer is."""
     data = request.json
     guess_index = data.get("character_index")
@@ -183,7 +182,7 @@ def guess():
 @app.route("/get_history", methods=["POST"])
 def get_history():
     """Get the conversation history for a character."""
-    global characters, innocent_facts, murderer_facts, murderer_index
+    global characters, innocent_facts, murderer_index
     data = request.json
     character_index = data.get("character_index")
 
