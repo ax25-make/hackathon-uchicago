@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { IoMdArrowDropright } from 'react-icons/io';
 import { GiRetroController } from 'react-icons/gi';
 
@@ -7,6 +7,7 @@ import { characters, charactersAssets } from '@/constants';
 import { cn } from '@/utils/cn';
 import Textbox from '../Textbox/component';
 import Button from '../Button/component';
+import { converseWithCharacter, Message } from '@/backend/api';
 
 type CharacterTabProps = {
 	index: number;
@@ -18,6 +19,8 @@ const CharacterTab = (props: CharacterTabProps) => {
 	const characterName = characters[index];
 	const assets = charactersAssets[characterName];
 
+	const firstPlay = useRef(true);
+
 	const currentTabIndex = useGameStore((state) => state.currentTabIndex);
 	const visible = currentTabIndex === index;
 	const imageSrc = dead ? assets.deathSrc : assets.idleSrc;
@@ -26,7 +29,15 @@ const CharacterTab = (props: CharacterTabProps) => {
 	const audioOverlaySrc = assets.musicOverlaySrc;
 	const audioRef = useRef<HTMLAudioElement>(null);
 	const audioOverlayRef = useRef<HTMLAudioElement>(null);
-	const audioStartTime = assets.musicStartTime; // first tim
+	const audioStartTime = assets.musicStartTime; // first time
+
+	const [input, setInput] = useState('');
+	const [chatHistory, setChatHistory] = useState<Message[]>([]);
+	const [noQuestionsLeft, setNoQuestionsLeft] = useState(false);
+	const lastMessage = chatHistory.length > 0 ? chatHistory[chatHistory.length - 1] : { role: '', text: '' };
+	const lastCharacterMessage = chatHistory.reverse().find((message) => message.role === 'model');
+	const defaultCharacterMessage = `Hello, I am ${characterName}. What brings you here?`;
+	const isInput = lastMessage.role !== 'model';
 
 	const className = cn(
 		'absolute inset-0 z-10 transition-opacity duration-500',
@@ -34,7 +45,37 @@ const CharacterTab = (props: CharacterTabProps) => {
 		!visible && 'hidden'
 	);
 
-	const firstPlay = useRef(true);
+	const textboxClassname = cn(
+		'w-[80%] mx-2  mix-blend-screen  hover:mix-blend-normal focus:mix-blend-normal peer-focus:mix-blend-normal',
+		!isInput && 'scrollbar-hide'
+	);
+
+	const loading = useGameStore((state) => state.loading);
+	const setLoading = useGameStore.getState().setLoading;
+
+	async function sendMessage() {
+		setLoading(true);
+		if (input.trim() === '') {
+			return;
+		}
+		const inputValueCopy = input.trim();
+		const result = await converseWithCharacter(index, inputValueCopy);
+		if (result.success) {
+			setInput('');
+			setChatHistory((prev) => [
+				...prev,
+				{ role: 'user', text: inputValueCopy },
+				{ role: 'model', text: result.response },
+			]);
+			if (result.questionsLeft === 0) {
+				setNoQuestionsLeft(true);
+			}
+		} else {
+			console.error('Error sending message:', result.error);
+		}
+		setLoading(false);
+	}
+
 	useEffect(() => {
 		if (visible && audioRef.current) {
 			audioRef.current.volume = 1.0;
@@ -73,16 +114,7 @@ const CharacterTab = (props: CharacterTabProps) => {
 			document.removeEventListener('click', onUserFirstInteraction);
 			document.removeEventListener('touchstart', onUserFirstInteraction);
 		};
-	}, [visible, audioRef, audioOverlayRef]);
-
-	// fake
-	const isInput = false;
-	const messages = ['You are a brave hero!', 'You have a quest to complete.', 'Your journey begins now.'];
-	const lastMessage = messages.length > 0 ? messages[messages.length - 1] : '';
-	const textboxClassname = cn(
-		'w-[80%] mx-2  mix-blend-screen  hover:mix-blend-normal focus:mix-blend-normal peer-focus:mix-blend-normal',
-		!isInput && 'scrollbar-hide'
-	);
+	}, [visible, audioRef, audioOverlayRef, audioStartTime]);
 
 	return (
 		<div className={className}>
@@ -93,7 +125,7 @@ const CharacterTab = (props: CharacterTabProps) => {
 				alt={`${characterName} ${dead ? 'dead' : 'idle'} animation`}
 				className='w-full h-full object-cover'
 			/>
-			<div className='absolute inset-0 flex items-end justify-start p-2 text-5xl'>
+			<div className='absolute inset-0 flex items-end justify-start p-2 text-5xl leading-[0.7]'>
 				<Textbox className={textboxClassname}>
 					{isInput && (
 						<>
@@ -105,12 +137,17 @@ const CharacterTab = (props: CharacterTabProps) => {
 								spellCheck='false'
 								className='w-full h-full bg-transparent placeholder-amber-950 focus:outline-none'
 								placeholder='Type your message...'
+								value={input}
+								onChange={(e) => {
+									setInput(e.target.value);
+								}}
+								onKeyDown={(e) => sendMessage()}
 							/>
 						</>
 					)}
 					{!isInput && (
 						<>
-							<span>{lastMessage}</span>
+							<span>{lastCharacterMessage?.text || defaultCharacterMessage}</span>
 							<GiRetroController className='aspect-square absolute bottom-0 right-0 p-2' />
 						</>
 					)}

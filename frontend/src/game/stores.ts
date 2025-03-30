@@ -17,6 +17,7 @@ interface GameStore {
 	isSceneMenu: boolean;
 
 	currentTabIndex: number;
+	setLoading: (loading: boolean) => void;
 	setCurrentTabIndex: (index: number) => void;
 	setCurrentTab(character: Character): void; // Set current tab to the character
 
@@ -43,6 +44,7 @@ export const useGameStore = create<GameStore>()((set) => ({
 	isSceneMenu: true,
 	currentTabIndex: 0,
 	tabs: [],
+	setLoading: (loading: boolean) => set({ loading }),
 	setCurrentTabIndex: (index: number) => set({ currentTabIndex: index }),
 
 	setCurrentTab: (character: Character) =>
