@@ -1,44 +1,111 @@
+import { useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
+
+import { TabSelector } from '@/components/TabSelector/component';
+import { characterData } from '@/backend/stubs';
+import { cn } from '@/utils/cn';
+
 import { useGameStore } from './stores';
-import { useMemo } from 'react';
+
+export const DEBUG = true;
 
 const useGame = () => {
-	const { tabs, currentTabIndex, setCurrentTabIndex } = useGameStore((state) => ({
-		tabs: state.tabs,
-		currentTabIndex: state.currentTabIndex,
-		setCurrentTabIndex: state.setCurrentTabIndex,
-	}));
+	const initialized = useGameStore((state) => state.initialized);
+	const loading = useGameStore((state) => state.loading);
 
-	const uiTabsMemo = useMemo(() => {
-		return tabs.map((tab) => ({
-			...tab,
-			icon: tab.character.icon,
-			label: tab.character.name,
-		}));
-	}, [tabs]);
+	const setInitialGame = useGameStore.getState().setInitialGame;
+	useEffect(() => {
+		if (DEBUG) {
+			setInitialGame(
+				{
+					setting: 'A dark and stormy night',
+					color: '#c0ffee',
+				},
+				{
+					backstory: 'A brave hero',
+					objective: 'Save the world',
+					facts: [],
+					keys: [],
+					inventory: [],
+				},
+				characterData
+			);
+		}
+	}, []);
 
-	const tab = tabs.length > 0 ? tabs[currentTabIndex] : null;
-	const character = tab ? tab.character : null;
-	const dialogue = tab ? tab.dialogue : null;
-	const history = dialogue ? dialogue.history : [];
-	const color = tab ? tab.dialogue.color : '';
-	const music = tab ? tab.dialogue.music : [];
-
-	return { tabs: uiTabsMemo, tab, character, dialogue, history, color, music };
+	return {
+		initialized,
+		loading,
+	};
 };
 
 const Game = () => {
-	const tabsMemoized;
+	const { initialized, loading } = useGame();
+	if (!initialized) {
+		return <GameInitializing />;
+	}
+
 	return (
-		<div className='aspect-square flex-grow bg-gray-800'>
+		<div className='aspect-square flex h-full flex-col flex-grow bg-gray-800 relative overflow-hidden'>
 			{/* Tabs */}
-			<Tabs
-				tabs={tabs.map((tab, index) => ({
-					id: tab.character.name,
-					icon: <img src={tab.character.icon} alt={tab.character.name} className='w-10 h-10' />,
-					label: tab.character.name,
-					onSelect: () => setCurrentTabIndex(index),
-				}))}
+			<GameLoadingOverlay loading={loading} />
+			<TabSelector />
+			<GameBackdrop />
+			<img src='/images/characters/demon.gif' alt='Demon' className='w-full h-full object-cover pointer-events-none' />
+			<div className='absolute inset-0 z-10 glitch pointer-events-none' />
+		</div>
+	);
+};
+
+const GameBackdrop = () => {
+	return (
+		<div className='w-full bg-white relative h-full overflow-hidden pointer-events-none'>
+			<motion.img
+				src='/images/backdrop.png'
+				alt='Backdrop'
+				className='w-full h-full object-cover pointer-events-none'
+				initial={{ opacity: 1 }}
+				animate={{
+					opacity: [1, 0.6, 1, 0.3, 1],
+				}}
+				transition={{
+					duration: 0.6,
+					repeat: Infinity,
+					repeatDelay: 3,
+					ease: 'easeInOut',
+				}}
 			/>
+		</div>
+	);
+};
+
+const GameLoadingOverlay = ({ loading }: { loading: boolean }) => (
+	<div className={cn('loading', loading && 'visible')}>
+		<img src='/spinner.svg' alt='Loading...' width='150' height='150' />
+	</div>
+);
+
+const GameInitializing = () => {
+	const ref = useRef<HTMLParagraphElement>(null);
+
+	useEffect(() => {
+		const loadingFrames = ['Loading', 'Loading.', 'Loading..', 'Loading...'];
+		let index = 0;
+		const interval = setInterval(() => {
+			if (ref.current) {
+				ref.current.innerText = loadingFrames[index];
+				index = (index + 1) % loadingFrames.length;
+			}
+		}, 500);
+
+		return () => clearInterval(interval);
+	}, []);
+
+	return (
+		<div className='flex flex-col items-center justify-center h-full'>
+			<p ref={ref} className='text-white text-lg'>
+				Loading...
+			</p>
 		</div>
 	);
 };

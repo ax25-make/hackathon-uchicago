@@ -9,6 +9,7 @@
 :root {
 	font-family: 'Pixi', monospace;
 	line-height: 1.5;
+	font-size: 15pt;
 	font-weight: 400;
 
 	color-scheme: light dark;

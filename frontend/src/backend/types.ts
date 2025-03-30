@@ -30,7 +30,6 @@ export interface Protagonist {
 
 export interface Story {
 	setting: string;
-	history: string;
 	color: string; // rgb hex
 }
 

@@ -1,4 +1,4 @@
-import { Character, Dialogue, Message, Story } from '@/backend/types';
+import { Character, CharacterData, Dialogue, Message, Story } from '@/backend/types';
 import { create } from 'zustand';
 import { Protagonist } from '../backend/types';
 
@@ -12,6 +12,9 @@ function getTabIdxFromCharacter(character: Character, state: GameStore): number 
 }
 
 interface GameStore {
+	initialized: boolean;
+	loading: boolean;
+
 	currentTabIndex: number;
 	setCurrentTabIndex: (index: number) => void;
 	setCurrentTab(character: Character): void; // Set current tab to the character
@@ -34,6 +37,8 @@ interface GameStore {
 }
 
 export const useGameStore = create<GameStore>()((set) => ({
+	initialized: false,
+	loading: true,
 	currentTabIndex: 0,
 	tabs: [],
 	setCurrentTabIndex: (index: number) => set({ currentTabIndex: index }),
@@ -66,6 +71,8 @@ export const useGameStore = create<GameStore>()((set) => ({
 					music: character.music,
 				},
 			})),
+			initialized: true,
+			loading: false,
 		}),
 
 	// UI related
