@@ -45,7 +45,7 @@ export const charactersAssets = {
 		musicSrc: '/music/fish_music.mp3',
 		musicOverlaySrc: '/music/fish_plop.mp3',
 		musicStartTime: 0,
-		startMessage: '*plop* Fish *plop* Guuuuuuuuy like *plop* to fish',
+		startMessage: '*plop* Fish *plop* Guuuuuuuuy like *plop* to fiiiiiish',
 	},
 } as const;
 
