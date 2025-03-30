@@ -1,5 +1,4 @@
-import { useRef, useState } from 'react';
-import useResizeObserver from '@react-hook/resize-observer';
+import { useRef } from 'react';
 import { cn } from '@/utils/cn';
 
 const stylizedButtonBackdrops = {
@@ -10,6 +9,7 @@ const stylizedButtonBackdrops = {
 
 type ButtonProps = {
 	children: React.ReactNode;
+	aspect?: 'regular' | 'square' | 'wide';
 } & React.ButtonHTMLAttributes<HTMLButtonElement>;
 
 const Button = ({ children, ...props }: ButtonProps) => {
@@ -23,11 +23,13 @@ const Button = ({ children, ...props }: ButtonProps) => {
 		props.className
 	);
 
+	const backdropSrc = stylizedButtonBackdrops[props.aspect || 'wide'];
+
 	return (
 		<button
 			ref={buttonRef}
 			style={{
-				backgroundImage: `url(${stylizedButtonBackdrops.wide})`,
+				backgroundImage: `url(${backdropSrc})`,
 				color: '#403214',
 			}}
 			{...props}
