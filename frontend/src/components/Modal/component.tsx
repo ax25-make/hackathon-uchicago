@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import Button from '../Button/component';
 const modalBackdropSrc = '/images/interface/modal.png';
 
@@ -30,6 +31,10 @@ const Modal = (props: ModalProps) => {
 			</div>
 		</div>
 	);
+};
+
+export const ModalPortal = (props: React.PropsWithChildren<ModalProps>) => {
+	return createPortal(<Modal {...props} />, document.getElementById('modal-root') as HTMLElement);
 };
 
 export default Modal;

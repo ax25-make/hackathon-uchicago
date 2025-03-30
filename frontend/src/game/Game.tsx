@@ -53,8 +53,11 @@ const useGame = () => {
 
 const Game = () => {
 	const { isSceneMenu, gameOver } = useGame();
+	const openModal = useGameStore((state) => state.openModal);
 
-	if (isSceneMenu || gameOver) {
+	const isGameOverAndModalClosed = gameOver && openModal === null;
+
+	if (isSceneMenu || isGameOverAndModalClosed) {
 		return <GameMenu />;
 	}
 
@@ -84,6 +87,7 @@ const GameScene = () => {
 					<Guess />
 				</Modal>
 			)}
+			<div id='modal-root' />
 			<div className='absolute top-[3rem] right-0 p-3 z-[50]  transition-transform flex flex-col gap-2'>
 				<button className='hover:cursor-pointer hover:scale-110' onClick={() => setCurrentOpenModal('instructions')}>
 					<IoIosInformationCircle size={20} />

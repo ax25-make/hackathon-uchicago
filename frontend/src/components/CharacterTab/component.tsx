@@ -10,6 +10,8 @@ import { cn } from '@/utils/cn';
 import Textbox from '../Textbox/component';
 import Button from '../Button/component';
 import { converseWithCharacter, Message } from '@/backend/api';
+import { ModalPortal } from '../Modal/component';
+import ChatHistory from '../Modal/ChatHistory';
 
 type CharacterTabProps = {
 	index: number;
@@ -58,7 +60,7 @@ const CharacterTab = (props: CharacterTabProps) => {
 	);
 
 	const textboxClassname = cn(
-		'w-[80%] mx-2  mix-blend-screen  hover:mix-blend-normal focus:mix-blend-normal peer-focus:mix-blend-normal',
+		'w-[80%] mx-2 opacity-90 hover:mix-blend-normal focus:mix-blend-normal peer-focus:mix-blend-normal',
 		!isInput && 'scrollbar-hide'
 	);
 
@@ -88,10 +90,6 @@ const CharacterTab = (props: CharacterTabProps) => {
 		}
 		setLoading(false);
 	}
-
-	useEffect(() => {
-		console.log('Character history:', chatHistory);
-	}, [chatHistory]);
 
 	useEffect(() => {
 		if (visible && audioRef.current) {
@@ -133,10 +131,16 @@ const CharacterTab = (props: CharacterTabProps) => {
 		};
 	}, [visible, audioRef, audioOverlayRef, audioStartTime]);
 
+	const openModal = useGameStore((state) => state.openModal);
 	const setOpenModal = useGameStore.getState().setOpenModal;
 
 	return (
 		<div className={className}>
+			{openModal === 'history' && currentTabIndex === index && (
+				<ModalPortal title='Chat History' buttonLabel='Close' onClose={() => setOpenModal(null)}>
+					<ChatHistory chatHistory={chatHistory} otherParty={characterName} />
+				</ModalPortal>
+			)}
 			<audio src={audioSrc} loop ref={audioRef} />
 			{audioOverlaySrc && <audio src={audioOverlaySrc} loop ref={audioOverlayRef} />}
 			<img
