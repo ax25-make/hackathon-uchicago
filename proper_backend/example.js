@@ -1,4 +1,5 @@
-const BASE_URL = "http://127.0.0.1:5005";
+// const BASE_URL = "http://127.0.0.1:5005";
+const BASE_URL = "https://9896-128-135-204-196.ngrok-free.app"
 let conversationHistories = {}, questionsRemaining = {}, gameInitialized = false;
 
 const fetchAPI = (endpoint, data = null) =>
