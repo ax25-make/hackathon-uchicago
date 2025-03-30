@@ -4,6 +4,7 @@ import os
 import random
 from dotenv import load_dotenv
 
+# Demon, Medusa, Dean Boyer, Leonardo Da Vinci, Fish Head Guy
 # Load environment variables from .env file
 load_dotenv()
 
@@ -19,18 +20,18 @@ client = genai.Client(api_key=API_KEY)
 MODEL_NAME = "gemini-2.0-flash"
 
 # ---- Game State ----
-characters = []  # List of 5 characters
+characters = ["" for _ in range(5)]  # List of 5 characters
 innocent_facts = [] # Facts that are known to all innocent characters
 murderer_facts = [] # subset of innocent facts that the murderer knows to increase inconsistency probability
 murderer_index = None  # Randomly chosen murderer
 
 
+names = ["Demon", "Medusa", "Dean Boyer", "Leonardo Da Vinci", "Fish Guy"]
+
 class Character:
-    def __init__(self, name, alibi, personality, suspicions):
-        self.name = name
+    def __init__(self, alibi, personality):
         self.alibi = alibi
         self.personality = personality
-        self.suspicions = suspicions
         self.conversation_history = []
         self.questions_remaining = 5
 
@@ -44,67 +45,66 @@ def generate_prompt_response(prompt):
     )
     return response.candidates[0].content.parts[0].text.strip()
 
-
-def create_character(setting, name, other_names):
+def create_character(setting, name):
     """Generate a character with consistent attributes."""
-
     # Generate personality first since it sets the tone
-    personality_prompt = f"Describe the personality and quirks of {name} in the context of a {setting} murder mystery."
+    personality_prompt = f"Describe the personality and quirks of {name} in 3 sentences in the context of {setting}. Add no prepending intro text."
     personality = generate_prompt_response(personality_prompt)
 
     # Generate alibi using personality and name for better consistency
-    alibi_prompt = f"Generate a consistent alibi for {name}, whose personality is {personality}, based on the {setting} murder mystery."
+    alibi_prompt = f"Generate a convincing alibi in 3 sentences for {name} based on the {setting} murder mystery. Add no prepending intro text."
     alibi = generate_prompt_response(alibi_prompt)
 
-    # Generate suspicions based on names, setting, personalities, and alibis
-
-    # Randomly select 2 characters for suspicions (cannot suspect themselves)
-    possible_suspicions = [n for n in other_names if n != name]
-    suspicions = random.sample(possible_suspicions, min(2, len(possible_suspicions)))
-
-    # Return a fully formed Character object
-    return Character(name, alibi, personality, suspicions)
-
-
+    # Return a partially formed Character object
+    return Character(alibi, personality)
 
 def initialize_game():
     """Initialize game state, generate characters, and randomize murderer."""
     global murderer_index
-
-    # Generate setting and background
-    setting = generate_prompt_response("Generate a detailed setting for a murder mystery story in 8 sentences.")
-    print("✅ Successfully created setting")
-    print(f"{setting}")
-
-
-    # Generate character names first
-    character_names = [
-        generate_prompt_response(f"Two word answer. Generate a first name and last name for a character in the murder mystery with setting: {setting}.")
-        for _ in range(5)
-    ]
-    print("✅ Successfully generated character names")
-
     # Randomly choose the murderer index (0–4)
     murderer_index = random.randint(0, 4)
 
+    setting = generate_prompt_response(f"Generate a detailed story for a murder mystery story with the 5 characters {', '.join(name for name in names)} where {str(names[murderer_index])} is guilty of the crime in 8 sentences.")
+    print("✅ Successfully created setting")
+    print(f"{setting}")
+
     # Create characters with dependencies in the correct order
-    characters = []
+    characters = ["" for _ in range(5)] # reset characters
     for i in range(5):
-        character = create_character(setting, character_names[i], character_names)
+        character = create_character(setting, names[i])
+        character.name = names[i]
         characters.append(character)
-        # Prepare conversation context
-        character.conversation_history = []
-        character_intro = f"In the murder mystery {setting}, you are {character.name}. {character.personality} your alibi: {character.alibi}. you suspect: {', '.join(character.suspicions)}. "
-        character.conversation_history.append({"role": "user", "parts": [{"text": character_intro}]})
         print(f"✅ Successfully generated character {str(i)}")
+        print(f"character name: {character.name}")
+        print(f"character personality: {character.personality}")
+        print(f"character alibi: {character.alibi}")
+
+    facts_prompt = f"From this story: {setting} and these alibies {','.join(character.name + ":" + character.alibi for character in characters)} generate 20 facts that each of the innocent characters will know regarding each others' alibies. Return the facts as a numbered list separated by newlines with no prepending intro text."
+
+    # Get all 20 facts using Gemini
+    facts_response = generate_prompt_response(facts_prompt)
+
+    # Split the response into a list of facts
+    innocent_facts = [fact.strip() for fact in facts_response.split("\n") if fact.strip()]
+    if len(innocent_facts) < 20:
+        raise ValueError("Failed to generate 20 facts. Check API response for errors.")
+    murderer_facts = random.sample(innocent_facts, 4) # murderer will know a subset of these facts
+
+    print(f"✅ Successfully generated facts list")
+    print(f"Innocent known facts: {'\n'.join(fact for fact in innocent_facts)}")
+    print(f"Guilty known facts: {'\n'.join(fact for fact in murderer_facts)}")
 
     # Clear global facts and conversation history
-    for character in characters:
+    for i, character in enumerate(characters):
+                # Initialize conversation context
+        character.conversation_history = []
+        facts = innocent_facts if i != murderer_index else murderer_facts
+        character_intro = f"In the murder mystery {setting}, you are {character.name}. {character.personality} your alibi: {character.alibi}. you know the facts: {','.join(fact for fact in facts)}. Speak to me from now on as if you are playing the role of this character trying to solve the murder mystery (even if you are the murderer). Stick closely to the facts you know."
+        character.conversation_history.append({"role": "user", "parts": [{"text": character_intro}]})
         character.conversation_history = []
         character.questions_remaining = 5
 
     print(f"🎭 Murderer is: {characters[murderer_index].name}")
-    return setting
 
 # ---- Flask App ----
 app = Flask(__name__)
@@ -116,20 +116,17 @@ app = Flask(__name__)
 def generate_game():
     """Generate a new murder mystery game."""
     try:
-        setting = initialize_game()
-        # Return the setting and a list of names in JSON
-        character_names = [character.name for character in characters]
-        return jsonify({"setting": setting,
-                        "character_names": character_names})
+        initialize_game()
+        # Return an empty response with 200 OK
+        return "", 204
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 
 @app.route("/converse", methods=["POST"])
 def converse():
     """Converse with one of the characters (0-4)."""
     data = request.json
-    character_index = data.get("character_index")
+    character_index = int(data.get("character_index"))
     user_query = data.get("query")
 
     if character_index is None or not (0 <= character_index < 5):
@@ -139,6 +136,8 @@ def converse():
         return jsonify({"error": "Query cannot be empty."}), 400
 
     character = characters[character_index]
+    if character == "":
+        return jsonify({"query_successful": False, "message": "Game has not been initialized"})
 
     # Check if the character has questions remaining
     if character.questions_remaining <= 0:
@@ -193,7 +192,6 @@ def get_history():
 
     character = characters[character_index]
     return jsonify({"conversation_history": character.conversation_history, "questions_remaining": character.questions_remaining})
-
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5005, debug=True)
