@@ -14,4 +14,9 @@ export default defineConfig({
 			'@utils': '/src/utils',
 		},
 	},
+	server: {
+		host: true, // Important: Allows external access
+		port: 5173, // Your port
+		allowedHosts: ['.ngrok.io', '.ngrok.app'], // Allow ngrok URLs
+	},
 });

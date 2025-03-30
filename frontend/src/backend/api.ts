@@ -1,5 +1,5 @@
 // const BASE_URL = "http://127.0.0.1:5005";
-const BASE_URL = 'https://9896-128-135-204-196.ngrok-free.app';
+const BASE_URL = 'https://eacfa2dc9071.ngrok.app';
 export type Message = { role: string; text: string };
 const defaultQuestionsLeft = 5;
 const conversationHistories = Array.from({ length: 5 }, () => [] as Message[]),
