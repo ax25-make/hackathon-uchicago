@@ -18,7 +18,7 @@ export const charactersAssets = {
 		musicSrc: '/music/medusa.mp3',
 		musicOverlaySrc: '/music/snake_hissing.mp3',
 		musicStartTime: 50,
-		startMessage: 'My name is Medusa. Don\'t try to pet me.',
+		startMessage: "My name is Medusa. Don't try to pet me.",
 	},
 	'Dean Boyer': {
 		name: 'Dean Boyer',
@@ -47,7 +47,17 @@ export const charactersAssets = {
 		musicStartTime: 0,
 		startMessage: '*plop* Fish *plop* Guuuuuuuuy like *plop* to fiiiiiish',
 	},
-} as const;
+} as {
+	[character: string]: {
+		name: string;
+		deathSrc: string;
+		idleSrc: string;
+		musicSrc: string;
+		musicOverlaySrc: string | null;
+		musicStartTime: number;
+		startMessage: string;
+	};
+};
 
 export const characterData: CharacterData = {
 	Demon: {

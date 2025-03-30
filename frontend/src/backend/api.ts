@@ -20,9 +20,9 @@ const fetchAPI = (endpoint: string, data: object = {}) =>
 
 export const generateGame = async () => {
 	try {
-		await fetchAPI('generate_game');
+		const data = await fetchAPI('generate_game');
 		gameInitialized = true;
-		return { success: true };
+		return { success: true, story: data.story };
 	} catch (e) {
 		// @ts-expect-error I don't care
 		console.error('❌ Game Init Error:', e.message);
@@ -45,7 +45,6 @@ export const converseWithCharacter = async (characterIndex: number, query: strin
 	try {
 		const data = await fetchAPI('converse', { character_index: characterIndex, query });
 		if (data.query_successful) {
-			updateGameState(characterIndex, query, data.response, data.questions_remaining);
 			return { success: true, response: data.response, questionsLeft: data.questions_remaining };
 		} else {
 			return { success: false, error: 'Query unsuccessful' };

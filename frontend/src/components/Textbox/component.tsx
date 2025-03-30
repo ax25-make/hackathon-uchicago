@@ -15,7 +15,7 @@ const Textbox = (props: TextboxProps) => {
 			}}
 		>
 			<div className='relative'>
-				<img src={textboxBackdrop} alt='Textbox' className='object-contain' />
+				<img src={textboxBackdrop} alt='Textbox' className='object-contain select-none' />
 				<div className='absolute inset-x-5 inset-x-end-3 inset-y-3 flex'>{props.children}</div>
 			</div>
 		</div>

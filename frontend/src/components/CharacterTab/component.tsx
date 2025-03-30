@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { IoMdArrowDropright } from 'react-icons/io';
 import { GiRetroController } from 'react-icons/gi';
+import { BsChatLeftTextFill } from 'react-icons/bs';
+import { MdOutlineQuestionMark } from 'react-icons/md';
 
 import { useGameStore } from '@/game/stores';
 import { characters, charactersAssets } from '@/constants';
@@ -13,6 +15,15 @@ type CharacterTabProps = {
 	index: number;
 	dead?: boolean;
 };
+
+function getLastCharacterMessage(chatHistory: Message[]) {
+	for (let i = chatHistory.length - 1; i >= 0; i--) {
+		if (chatHistory[i].role === 'model') {
+			return chatHistory[i];
+		}
+	}
+	return { role: '', text: '' };
+}
 
 const CharacterTab = (props: CharacterTabProps) => {
 	const { index, dead } = props;
@@ -33,10 +44,12 @@ const CharacterTab = (props: CharacterTabProps) => {
 
 	const [input, setInput] = useState('');
 	const [chatHistory, setChatHistory] = useState<Message[]>([{ role: 'model', text: assets.startMessage }]);
-	const [noQuestionsLeft, setNoQuestionsLeft] = useState(false);
+	const [numQuestionsLeft, setNumQuestionsLeft] = useState(5);
+	const noQuestionsLeft = numQuestionsLeft === 0;
 	const lastMessage = chatHistory.length > 0 ? chatHistory[chatHistory.length - 1] : { role: '', text: '' };
-	const lastCharacterMessage = chatHistory.reverse().find((message) => message.role === 'model');
-	const isInput = lastMessage.role !== 'model';
+	const lastCharacterMessage = getLastCharacterMessage(chatHistory);
+	const [didUserReadMessage, setDidUserReadMessage] = useState(false);
+	const isInput = lastMessage.role === 'model' && didUserReadMessage && !noQuestionsLeft;
 
 	const className = cn(
 		'absolute inset-0 z-10 transition-opacity duration-500',
@@ -60,19 +73,25 @@ const CharacterTab = (props: CharacterTabProps) => {
 		const result = await converseWithCharacter(index, inputValueCopy);
 		if (result.success) {
 			setInput('');
-			setChatHistory((prev) => [
-				...prev,
-				{ role: 'user', text: inputValueCopy },
-				{ role: 'model', text: result.response },
-			]);
-			if (result.questionsLeft === 0) {
-				setNoQuestionsLeft(true);
-			}
+			setDidUserReadMessage(false);
+			setChatHistory((prev) => {
+				const updatedHistory = [
+					...prev,
+					{ role: 'user', text: inputValueCopy },
+					{ role: 'model', text: result.response },
+				];
+				return updatedHistory;
+			});
+			setNumQuestionsLeft(result.questionsLeft);
 		} else {
 			console.error('Error sending message:', result.error);
 		}
 		setLoading(false);
 	}
+
+	useEffect(() => {
+		console.log('Character history:', chatHistory);
+	}, [chatHistory]);
 
 	useEffect(() => {
 		if (visible && audioRef.current) {
@@ -114,6 +133,8 @@ const CharacterTab = (props: CharacterTabProps) => {
 		};
 	}, [visible, audioRef, audioOverlayRef, audioStartTime]);
 
+	const setOpenModal = useGameStore.getState().setOpenModal;
+
 	return (
 		<div className={className}>
 			<audio src={audioSrc} loop ref={audioRef} />
@@ -121,9 +142,9 @@ const CharacterTab = (props: CharacterTabProps) => {
 			<img
 				src={imageSrc}
 				alt={`${characterName} ${dead ? 'dead' : 'idle'} animation`}
-				className='w-full h-full object-cover'
+				className='w-full h-full object-cover select-none'
 			/>
-			<div className='absolute inset-0 flex items-end justify-start p-2 text-5xl leading-[0.7]'>
+			<div className='absolute inset-0 flex items-end justify-start p-2 text-5xl leading-[0.6]'>
 				<Textbox className={textboxClassname}>
 					{isInput && (
 						<>
@@ -133,7 +154,7 @@ const CharacterTab = (props: CharacterTabProps) => {
 								autoCorrect='off'
 								autoCapitalize='off'
 								spellCheck='false'
-								className='w-full h-full bg-transparent placeholder-amber-950 focus:outline-none max-w-[80%]  overflow-auto'
+								className='w-full h-full bg-transparent placeholder-amber-950 focus:outline-none max-w-[80%]  overflow-auto p-2 pb-4'
 								placeholder='Type your message...'
 								value={input}
 								onChange={(e) => {
@@ -153,19 +174,91 @@ const CharacterTab = (props: CharacterTabProps) => {
 					)}
 					{!isInput && (
 						<>
-							<span className='max-w-[90%]  overflow-auto'>{lastCharacterMessage?.text}</span>
+							<WordStreamSpan
+								className='max-w-[90%]  overflow-auto p-2 pb-4 scrollbar-hide select-none'
+								visible={visible}
+							>
+								{noQuestionsLeft ? "I can't answer any more questions." : lastCharacterMessage?.text}
+							</WordStreamSpan>
 							<GiRetroController className='aspect-square absolute bottom-0 right-0 p-2' />
 						</>
 					)}
 					<Button
 						className='text-5xl absolute top-[-0.7rem] right-0 translate-x-[150%] w-fit aspect-video h-auto scale-[0.9]'
 						aspect='square'
+						onClick={() => {
+							if (isInput) {
+								sendMessage();
+							} else {
+								setDidUserReadMessage(true);
+							}
+						}}
 					>
-						<IoMdArrowDropright className='aspect-square' />
+						{isInput ? (
+							<IoMdArrowDropright
+								className='aspect-square'
+								style={{
+									fill: '#403214',
+								}}
+							/>
+						) : (
+							<BsChatLeftTextFill
+								className='aspect-square scale-40'
+								style={{
+									fill: '#403214',
+								}}
+							/>
+						)}
 					</Button>
+					<Button
+						className='text-5xl absolute top-[-0.7rem] right-0 translate-x-[250%] w-fit aspect-video h-auto scale-[0.9]'
+						aspect='square'
+						onClick={() => {
+							setOpenModal('guess');
+						}}
+					>
+						<MdOutlineQuestionMark className='aspect-square scale-70' />
+					</Button>
+					<span className='aspect-square absolute top-0 right-0 p-2 select-none'>{numQuestionsLeft}</span>
 				</Textbox>
 			</div>
 		</div>
+	);
+};
+
+const WordStreamSpan = ({
+	children,
+	visible,
+	...props
+}: { children: React.ReactNode; visible: boolean } & React.HTMLProps<HTMLSpanElement>) => {
+	const text = typeof children === 'string' ? children : '';
+	const words = text.split(' ');
+	const [currentWord, setCurrentWord] = useState(0);
+	const spanRef = useRef<HTMLSpanElement>(null);
+
+	const openModal = useGameStore((state) => state.openModal);
+
+	useEffect(() => {
+		if (!visible || Boolean(openModal)) return;
+		if (currentWord < words.length) {
+			setTimeout(() => {
+				setCurrentWord((prev) => prev + 1);
+			}, 50 + Math.random() * 60);
+		}
+	}, [currentWord, words.length, visible, openModal]);
+
+	useEffect(() => {
+		if (spanRef.current) {
+			spanRef.current.style.scrollBehavior = 'smooth';
+			spanRef.current.scrollTop = spanRef.current.scrollHeight;
+			spanRef.current.style.scrollBehavior = 'auto';
+		}
+	}, [currentWord]);
+
+	return (
+		<span {...props} ref={spanRef}>
+			{words.slice(0, currentWord).join(' ')}
+		</span>
 	);
 };
 
