@@ -2,16 +2,18 @@ import { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 
 import { TabSelector } from '@/components/TabSelector/component';
-import { characterData } from '@/backend/stubs';
 import { cn } from '@/utils/cn';
 
 import { useGameStore } from './stores';
+import { characterData, characters } from '@/constants';
+import CharacterTab from '@/components/CharacterTab/component';
 
 export const DEBUG = true;
 
 const useGame = () => {
 	const initialized = useGameStore((state) => state.initialized);
 	const loading = useGameStore((state) => state.loading);
+	const isSceneMenu = useGameStore((state) => state.isSceneMenu);
 
 	const setInitialGame = useGameStore.getState().setInitialGame;
 	useEffect(() => {
@@ -36,30 +38,49 @@ const useGame = () => {
 	return {
 		initialized,
 		loading,
+		isSceneMenu,
 	};
 };
 
 const Game = () => {
-	const { initialized, loading } = useGame();
+	const { initialized, loading, isSceneMenu } = useGame();
 	if (!initialized) {
 		return <GameInitializing />;
 	}
 
+	if (isSceneMenu) {
+		return <GameMenu />;
+	}
+
 	return (
-		<div className='aspect-square flex h-full flex-col flex-grow bg-gray-800 relative overflow-hidden'>
+		<div className='aspect-square flex h-full flex-col flex-grow bg-gray-800 relative overflow-hidden min-h-[800px]'>
 			{/* Tabs */}
 			<GameLoadingOverlay loading={loading} />
 			<TabSelector />
-			<GameBackdrop />
-			<img src='/images/characters/demon.gif' alt='Demon' className='w-full h-full object-cover pointer-events-none' />
+			{characters.map((character, index) => (
+				<CharacterTab key={character} index={index} />
+			))}
 			<div className='absolute inset-0 z-10 glitch pointer-events-none' />
+			<img
+				src='/images/interface/logo.png'
+				alt='Murder Mystery Logo'
+				className='absolute right-0 bottom-0 p-2 z-[30] max-w-[19%] grayscale-animation'
+			/>
 		</div>
+	);
+};
+
+const GameMenu = () => {
+	return (
+		<>
+			<GameBackdrop />
+		</>
 	);
 };
 
 const GameBackdrop = () => {
 	return (
-		<div className='w-full bg-white relative h-full overflow-hidden pointer-events-none'>
+		<div className='w-full bg-white h-full overflow-hidden pointer-events-none absolute'>
 			<motion.img
 				src='/images/backdrop.png'
 				alt='Backdrop'
